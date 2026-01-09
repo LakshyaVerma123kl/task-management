@@ -34,8 +34,16 @@ export default function LoginPage() {
       toast.success("Welcome back! 👋");
       router.push("/dashboard");
     } catch (error: any) {
-      const message =
-        error.response?.data?.error || "Login failed. Please try again.";
+      let message = "Login failed. Please try again.";
+
+      // Handle specific error cases
+      if (error.response?.status === 401) {
+        message = "Incorrect email or password";
+      } else if (error.response?.data?.error) {
+        // Use the server's error message if available and not a 401
+        message = error.response.data.error;
+      }
+
       toast.error(message);
     } finally {
       setLoading(false);
