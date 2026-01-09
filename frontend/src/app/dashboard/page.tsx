@@ -13,6 +13,9 @@ import {
   LayoutGrid,
   List,
   TrendingUp,
+  Clock,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -51,13 +54,16 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetchTasks();
-  }, [filters]);
+    const debounce = setTimeout(() => {
+      fetchTasks();
+    }, 300);
+    return () => clearTimeout(debounce);
+  }, [filters.status, filters.search, filters.page]);
 
   const handleCreateTask = async (data: CreateTaskData) => {
     try {
       await taskService.createTask(data);
-      toast.success("Task created successfully! 🎉");
+      toast.success("Task created successfully!");
       fetchTasks();
     } catch (error: any) {
       toast.error("Failed to create task");
@@ -68,7 +74,7 @@ export default function DashboardPage() {
     if (!editingTask) return;
     try {
       await taskService.updateTask(editingTask.id, data);
-      toast.success("Task updated successfully! ✨");
+      toast.success("Task updated!");
       fetchTasks();
       setEditingTask(undefined);
     } catch (error: any) {
@@ -78,10 +84,9 @@ export default function DashboardPage() {
 
   const handleDeleteTask = async (id: string) => {
     if (!confirm("Are you sure you want to delete this task?")) return;
-
     try {
       await taskService.deleteTask(id);
-      toast.success("Task deleted successfully");
+      toast.success("Task deleted");
       fetchTasks();
     } catch (error: any) {
       toast.error("Failed to delete task");
@@ -91,10 +96,9 @@ export default function DashboardPage() {
   const handleToggleTask = async (id: string) => {
     try {
       await taskService.toggleTask(id);
-      toast.success("Task status updated! ✓");
       fetchTasks();
     } catch (error: any) {
-      toast.error("Failed to update task status");
+      toast.error("Failed to update status");
     }
   };
 
@@ -103,12 +107,7 @@ export default function DashboardPage() {
     setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingTask(undefined);
-  };
-
-  // Calculate statistics
+  // Stats calculation
   const stats = {
     total: pagination.total,
     pending: tasks.filter((t) => t.status === "PENDING").length,
@@ -116,278 +115,219 @@ export default function DashboardPage() {
     completed: tasks.filter((t) => t.status === "COMPLETED").length,
   };
 
-  const completionRate =
-    stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header Section */}
-        <div className="mb-8 animate-fade-in">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-20">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 animate-fade-in">
+        <div>
+          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-2">
+            My Tasks
+          </h1>
+          <p className="text-lg text-slate-600 dark:text-slate-400">
+            Welcome back! Here's what's on your plate.
+          </p>
+        </div>
+        <button
+          onClick={() => handleOpenModal()}
+          className="group px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 whitespace-nowrap"
+        >
+          <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+          Create New Task
+        </button>
+      </div>
+
+      {/* Stats Grid */}
+      <div
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 animate-slide-up"
+        style={{ animationDelay: "100ms" }}
+      >
+        {[
+          {
+            label: "Total Tasks",
+            value: stats.total,
+            icon: LayoutGrid,
+            color: "text-blue-600",
+            bg: "bg-blue-50 dark:bg-blue-900/20",
+          },
+          {
+            label: "Pending",
+            value: stats.pending,
+            icon: Clock,
+            color: "text-amber-600",
+            bg: "bg-amber-50 dark:bg-amber-900/20",
+          },
+          {
+            label: "In Progress",
+            value: stats.inProgress,
+            icon: TrendingUp,
+            color: "text-indigo-600",
+            bg: "bg-indigo-50 dark:bg-indigo-900/20",
+          },
+          {
+            label: "Completed",
+            value: stats.completed,
+            icon: CheckCircle2,
+            color: "text-emerald-600",
+            bg: "bg-emerald-50 dark:bg-emerald-900/20",
+          },
+        ].map((stat, i) => (
+          <div
+            key={i}
+            className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className={`p-3 rounded-xl ${stat.bg} ${stat.color}`}>
+                <stat.icon className="w-6 h-6" />
+              </div>
+            </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-indigo-900 dark:from-white dark:via-blue-200 dark:to-indigo-200 bg-clip-text text-transparent mb-2">
-                My Tasks
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400">
-                Manage and organize your tasks efficiently
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                {stat.label}
               </p>
-            </div>
-            <button
-              onClick={() => handleOpenModal()}
-              className="group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2 whitespace-nowrap"
-            >
-              <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-              New Task
-            </button>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                    Total
-                  </p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {stats.total}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl flex items-center justify-center">
-                  <LayoutGrid className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                    Pending
-                  </p>
-                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                    {stats.pending}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-xl flex items-center justify-center">
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                    In Progress
-                  </p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {stats.inProgress}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                    Completed
-                  </p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {stats.completed}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-xl flex items-center justify-center">
-                  <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                    {completionRate}%
-                  </span>
-                </div>
-              </div>
+              <h3 className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
+                {stat.value}
+              </h3>
             </div>
           </div>
-        </div>
+        ))}
+      </div>
 
-        {/* Filters Section */}
-        <div className="mb-6 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search tasks..."
-                value={filters.search}
+      {/* Filters & Controls */}
+      <div
+        className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm sticky top-20 z-30 animate-slide-up"
+        style={{ animationDelay: "200ms" }}
+      >
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1 relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+            <input
+              type="text"
+              placeholder="Search tasks by title..."
+              value={filters.search}
+              onChange={(e) =>
+                setFilters({ ...filters, search: e.target.value, page: 1 })
+              }
+              className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500/50 text-slate-900 dark:text-white transition-all placeholder:text-slate-400"
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <div className="relative flex-1 md:flex-none md:w-48">
+              <select
+                value={filters.status}
                 onChange={(e) =>
-                  setFilters({ ...filters, search: e.target.value, page: 1 })
+                  setFilters({
+                    ...filters,
+                    status: e.target.value as TaskStatus | "",
+                    page: 1,
+                  })
                 }
-                className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 text-slate-900 dark:text-white transition-all"
-              />
+                className="w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-900/50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500/50 text-slate-900 dark:text-white appearance-none cursor-pointer font-medium"
+              >
+                <option value="">All Statuses</option>
+                <option value="PENDING">Pending</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+              </select>
+              <Filter className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
 
-            <div className="flex gap-3">
-              <div className="relative">
-                <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-                <select
-                  value={filters.status}
-                  onChange={(e) =>
-                    setFilters({
-                      ...filters,
-                      status: e.target.value as TaskStatus | "",
-                      page: 1,
-                    })
-                  }
-                  className="pl-12 pr-10 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 text-slate-900 dark:text-white transition-all appearance-none cursor-pointer min-w-[160px]"
-                >
-                  <option value="">All Status</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="IN_PROGRESS">In Progress</option>
-                  <option value="COMPLETED">Completed</option>
-                </select>
-              </div>
-
-              <div className="flex bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-1">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded-lg transition-all ${
-                    viewMode === "grid"
-                      ? "bg-white dark:bg-slate-800 shadow-sm text-blue-600 dark:text-blue-400"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                  }`}
-                  aria-label="Grid view"
-                >
-                  <LayoutGrid className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-2 rounded-lg transition-all ${
-                    viewMode === "list"
-                      ? "bg-white dark:bg-slate-800 shadow-sm text-blue-600 dark:text-blue-400"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                  }`}
-                  aria-label="List view"
-                >
-                  <List className="w-5 h-5" />
-                </button>
-              </div>
+            <div className="flex bg-slate-50 dark:bg-slate-900/50 p-1.5 rounded-xl gap-1">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-2 rounded-lg transition-all ${
+                  viewMode === "grid"
+                    ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}
+              >
+                <LayoutGrid className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-2 rounded-lg transition-all ${
+                  viewMode === "list"
+                    ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}
+              >
+                <List className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Tasks Grid/List */}
+      {/* Tasks List */}
+      <div className="min-h-[300px]">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="relative">
-              <div className="w-16 h-16 border-4 border-slate-200 dark:border-slate-700 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
-                className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin"
-                style={{
-                  animationDirection: "reverse",
-                  animationDuration: "1.5s",
-                }}
-              ></div>
-            </div>
-            <p className="mt-6 text-slate-600 dark:text-slate-400 font-medium">
-              Loading your tasks...
-            </p>
+                key={i}
+                className="h-48 bg-slate-100 dark:bg-slate-800/50 rounded-2xl animate-pulse"
+              />
+            ))}
           </div>
         ) : tasks.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <LayoutGrid className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+              <Search className="w-10 h-10 text-slate-400" />
             </div>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
-              {filters.search || filters.status
-                ? "No tasks found"
-                : "No tasks yet"}
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+              No tasks found
             </h3>
-            <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-md mx-auto">
+            <p className="text-slate-500 dark:text-slate-400 max-w-md">
               {filters.search || filters.status
-                ? "Try adjusting your filters to find what you're looking for"
-                : "Get started by creating your first task and stay organized"}
+                ? "Try adjusting your filters to find what you're looking for."
+                : "You're all caught up! Create a new task to get started."}
             </p>
-            <button
-              onClick={() => handleOpenModal()}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              <Plus className="w-5 h-5" />
-              Create your first task
-            </button>
+            {(filters.search || filters.status) && (
+              <button
+                onClick={() => setFilters({ status: "", search: "", page: 1 })}
+                className="mt-6 px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-medium"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         ) : (
-          <>
-            <div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"
-                  : "space-y-4 mb-8"
-              }
-            >
-              {tasks.map((task, index) => (
-                <div
-                  key={task.id}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                  className="animate-fade-in"
-                >
-                  <TaskCard
-                    task={task}
-                    onEdit={handleOpenModal}
-                    onDelete={handleDeleteTask}
-                    onToggle={handleToggleTask}
-                    viewMode={viewMode}
-                  />
-                </div>
-              ))}
-            </div>
-
-            {pagination.totalPages > 1 && (
-              <div className="flex justify-center items-center gap-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
-                <button
-                  onClick={() =>
-                    setFilters({ ...filters, page: filters.page - 1 })
-                  }
-                  disabled={filters.page === 1}
-                  className="px-5 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-800 transition-all font-medium text-slate-700 dark:text-slate-300"
-                >
-                  Previous
-                </button>
-                <div className="flex items-center gap-2 px-4 py-2.5">
-                  <span className="text-slate-600 dark:text-slate-400">
-                    Page
-                  </span>
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    {pagination.page}
-                  </span>
-                  <span className="text-slate-600 dark:text-slate-400">of</span>
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    {pagination.totalPages}
-                  </span>
-                </div>
-                <button
-                  onClick={() =>
-                    setFilters({ ...filters, page: filters.page + 1 })
-                  }
-                  disabled={filters.page === pagination.totalPages}
-                  className="px-5 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-800 transition-all font-medium text-slate-700 dark:text-slate-300"
-                >
-                  Next
-                </button>
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                : "space-y-4"
+            }
+          >
+            {tasks.map((task, index) => (
+              <div
+                key={task.id}
+                className="animate-fade-in"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <TaskCard
+                  task={task}
+                  onEdit={handleOpenModal}
+                  onDelete={handleDeleteTask}
+                  onToggle={handleToggleTask}
+                  viewMode={viewMode}
+                />
               </div>
-            )}
-          </>
+            ))}
+          </div>
         )}
-
-        <TaskModal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          onCreate={handleCreateTask}
-          onUpdate={handleUpdateTask}
-          task={editingTask}
-        />
       </div>
+
+      <TaskModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingTask(undefined);
+        }}
+        onCreate={handleCreateTask}
+        onUpdate={handleUpdateTask}
+        task={editingTask}
+      />
     </div>
   );
 }
