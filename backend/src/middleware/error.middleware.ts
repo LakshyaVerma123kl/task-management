@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 
 export const errorHandler = (
   err: Error,
-  _req: Request, // Prefix with underscore
+  _req: Request,
   res: Response,
   next: NextFunction
 ): void => {
@@ -19,9 +19,9 @@ export const errorHandler = (
 };
 
 export const notFoundHandler = (
-  _req: Request, // Prefix with underscore
+  _req: Request,
   res: Response,
-  _next: NextFunction // Prefix with underscore
+  _next: NextFunction
 ): void => {
   res.status(404).json({ error: "Route not found" });
 };

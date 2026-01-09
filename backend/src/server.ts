@@ -8,7 +8,6 @@ const PORT = process.env.PORT || 3000;
 
 const startServer = async () => {
   try {
-    // Test database connection
     await prisma.$connect();
     console.log("✅ Database connected successfully");
 
@@ -22,7 +21,6 @@ const startServer = async () => {
   }
 };
 
-// Graceful shutdown
 process.on("SIGINT", async () => {
   console.log("\n👋 Shutting down gracefully...");
   await prisma.$disconnect();
