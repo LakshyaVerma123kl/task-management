@@ -15,7 +15,6 @@ import { authenticateToken } from "../middleware/auth.middleware";
 
 const router = Router();
 
-// All task routes require authentication
 router.use(authenticateToken);
 
 router.get("/", getTasks);
